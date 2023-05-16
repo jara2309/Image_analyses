@@ -5,6 +5,7 @@ import numpy as np
 import PIL
 import tensorflow as tf
 from sklearn.metrics import roc_curve, roc_auc_score
+from sklearn.preprocessing import label_binarize
 
 from tensorflow import keras
 from tensorflow.keras import layers
@@ -223,8 +224,10 @@ if __name__ == '__main__':
                 tumor = 0
             elif 'COVID19' in str(sub_directory):
                 tumor = 1
-            else:
+            elif 'PNEUMONIA' in str(sub_directory):
                 tumor = 2
+            else:
+                tumor = -1
             # Updates the directory path
             sub_directory_full_path = test_path + '/' + sub_directory
             # Loops through all the images in the test directory and gives them a score
@@ -239,30 +242,33 @@ if __name__ == '__main__':
                 model_interpreter.invoke()
                 output = model_interpreter.get_tensor(output_details_model[0]['index'])
                 # Calculates score
-                score = tf.nn.softmax(output[0])
+                scores = tf.nn.softmax(output[0])
                 test_dataset_y_values.append(tumor)
-                predictions.append(score[1])
+                y = label_binarize(test_dataset_y_values, classes=[0, 1, 2, 3])
+
+                predictions.append(scores)
         try:
-            roc_auc_score(test_dataset_y_values, predictions)
+            roc_auc_score(y, predictions)
         except ValueError:
             pass
         # Calculates auc_score
-        auc_score = roc_auc_score(test_dataset_y_values,predictions, multi_class='ovr')
+        auc_score = roc_auc_score(y, predictions, multi_class='ovr')
+        print(auc_score)
 
         # Calculates roc_curve
-        false_positive_rate, true_positive_rate, thresholds = roc_curve(test_dataset_y_values, predictions)
+        #false_positive_rate, true_positive_rate, thresholds = roc_curve(y, predictions)
         # Plot roc_curve
-        plt.plot(false_positive_rate, true_positive_rate, label='ROC Curve')
-        plt.plot([0, 1], [0, 1], 'k--', label='Random')
-        plt.xlabel('False Positive Rate')
-        plt.ylabel('True Positive Rate')
-        plt.title('ROC plot Tosca & Jara')
-        plt.legend()
+        #plt.plot(false_positive_rate, true_positive_rate, label='ROC Curve')
+        #plt.plot([0, 1], [0, 1], 'k--', label='Random')
+        #plt.xlabel('False Positive Rate')
+        #plt.ylabel('True Positive Rate')
+        #plt.title('ROC plot Tosca & Jara')
+        #plt.legend()
 
         # Add AUC score to the plot
-        plt.text(0.7, 0.2, f'AUC = {auc_score:.2f}')
+        #plt.text(0.7, 0.2, f'AUC = {auc_score:.2f}')
 
-        plt.show()
+        #plt.show()
 
 
     roc_curvee()
