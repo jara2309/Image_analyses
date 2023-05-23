@@ -10,6 +10,7 @@ from sklearn.preprocessing import label_binarize
 from tensorflow import keras
 from tensorflow.keras import layers
 from tensorflow.keras.models import Sequential
+from tensorflow.keras.callbacks import LearningRateScheduler
 
 import pathlib
 
@@ -32,7 +33,7 @@ if __name__ == '__main__':
     # # tullip2 = PIL.Image.open(str(tulips[1]))
     # # # tullip2.show()
     #
-    batch_size = 32
+    batch_size = 64
     img_height = 180
     img_width = 180
     train_data_dir = "C:/Users/jaral/PycharmProjects/Image_analyses_ours/train"
@@ -127,12 +128,12 @@ if __name__ == '__main__':
 
     data_augmentation = keras.Sequential(
         [
-            layers.RandomFlip("horizontal",
-                              input_shape=(img_height,
-                                           img_width,
-                                           3)),
-            layers.RandomRotation(0.1),
-            layers.RandomZoom(0.1),
+            layers.experimental.preprocessing.RandomFlip("horizontal_and_vertical",
+                                                         input_shape=(img_height, img_width, 3)),
+            layers.experimental.preprocessing.RandomRotation(0.2),
+            layers.experimental.preprocessing.RandomZoom(0.2),
+            layers.experimental.preprocessing.RandomContrast(0.1),
+
         ]
     )
 
@@ -143,19 +144,19 @@ if __name__ == '__main__':
             plt.axis("off")
         plt.show()
 
+    # Create a learning rate scheduler callback
     model = Sequential([
         data_augmentation,
-        layers.Rescaling(1. / 255),
-        layers.Conv2D(16, 3, padding='same', activation='relu'),
-        layers.MaxPooling2D(),
-        layers.Conv2D(32, 3, padding='same', activation='relu'),
-        layers.MaxPooling2D(),
-        layers.Conv2D(64, 3, padding='same', activation='relu'),
-        layers.MaxPooling2D(),
-        layers.Dropout(0.2),
+        layers.Conv2D(32, (3, 3), activation='relu', input_shape=(img_height, img_width, 3)),
+        layers.MaxPooling2D((2, 2)),
+        layers.Conv2D(64, (3, 3), activation='relu'),
+        layers.MaxPooling2D((2, 2)),
+        layers.Conv2D(128, (3, 3), activation='relu'),
+        layers.MaxPooling2D((2, 2)),
         layers.Flatten(),
-        layers.Dense(128, activation='relu'),
-        layers.Dense(num_classes, name="outputs")
+        layers.Dense(256, activation='relu'),
+        layers.Dense(num_classes, activation='softmax')
+
     ])
     model.compile(optimizer='adam',
                   loss=tf.keras.losses.SparseCategoricalCrossentropy(from_logits=True),
@@ -165,7 +166,7 @@ if __name__ == '__main__':
     history = model.fit(
         train_ds,
         validation_data=val_ds,
-        epochs=epochs
+        epochs=epochs,
     )
     acc = history.history['accuracy']
     val_acc = history.history['val_accuracy']
@@ -191,7 +192,7 @@ if __name__ == '__main__':
 
     convert = tf.lite.TFLiteConverter.from_keras_model(model)
     convert_model = convert.convert()
-    with open('keras_model1.tflite', 'wb') as f:
+    with open('keras_model3.tflite', 'wb') as f:
         f.write(convert_model)
 
 
@@ -210,7 +211,7 @@ if __name__ == '__main__':
         img_width = 180
 
         # Get saved model
-        model_interpreter = tf.lite.Interpreter(model_path="keras_model1.tflite")
+        model_interpreter = tf.lite.Interpreter(model_path="keras_model3.tflite")
         # Optimizes inference
         model_interpreter.allocate_tensors()
 
@@ -220,12 +221,14 @@ if __name__ == '__main__':
 
         # Loops through test directory to give 1 point to tumor pictures
         for sub_directory in directory_test_list:
-            if 'NORMAL' in str(sub_directory):
+            if 'Buffalo' in str(sub_directory):
                 tumor = 0
-            elif 'COVID19' in str(sub_directory):
+            elif 'Elephant' in str(sub_directory):
                 tumor = 1
-            elif 'PNEUMONIA' in str(sub_directory):
+            elif 'Rhino' in str(sub_directory):
                 tumor = 2
+            elif 'Zebra' in str(sub_directory):
+                tumor = 3
             else:
                 tumor = -1
             # Updates the directory path
@@ -244,7 +247,7 @@ if __name__ == '__main__':
                 # Calculates score
                 scores = tf.nn.softmax(output[0])
                 test_dataset_y_values.append(tumor)
-                y = label_binarize(test_dataset_y_values, classes=[0, 1, 2, 3])
+                y = label_binarize(test_dataset_y_values, classes=[0, 1, 2, 3, 4])
 
                 predictions.append(scores)
         try:
@@ -256,19 +259,19 @@ if __name__ == '__main__':
         print(auc_score)
 
         # Calculates roc_curve
-        #false_positive_rate, true_positive_rate, thresholds = roc_curve(y, predictions)
+        # false_positive_rate, true_positive_rate, thresholds = roc_curve(y, predictions)
         # Plot roc_curve
-        #plt.plot(false_positive_rate, true_positive_rate, label='ROC Curve')
-        #plt.plot([0, 1], [0, 1], 'k--', label='Random')
-        #plt.xlabel('False Positive Rate')
-        #plt.ylabel('True Positive Rate')
-        #plt.title('ROC plot Tosca & Jara')
-        #plt.legend()
+        # plt.plot(false_positive_rate, true_positive_rate, label='ROC Curve')
+        # plt.plot([0, 1], [0, 1], 'k--', label='Random')
+        # plt.xlabel('False Positive Rate')
+        # plt.ylabel('True Positive Rate')
+        # plt.title('ROC plot Tosca & Jara')
+        # plt.legend()
 
         # Add AUC score to the plot
-        #plt.text(0.7, 0.2, f'AUC = {auc_score:.2f}')
+        # plt.text(0.7, 0.2, f'AUC = {auc_score:.2f}')
 
-        #plt.show()
+        # plt.show()
 
 
     roc_curvee()
