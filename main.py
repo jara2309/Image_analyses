@@ -33,7 +33,7 @@ if __name__ == '__main__':
     # # tullip2 = PIL.Image.open(str(tulips[1]))
     # # # tullip2.show()
     #
-    batch_size = 64
+    batch_size = 128
     img_height = 180
     img_width = 180
     train_data_dir = "C:/Users/jaral/PycharmProjects/Image_analyses_ours/train"
@@ -57,19 +57,19 @@ if __name__ == '__main__':
 
     print(class_names)
 
-    plt.figure(figsize=(10, 10))
-    for images, labels in train_ds.take(1):
-        for i in range(9):
-            ax = plt.subplot(3, 3, i + 1)
-            plt.imshow(images[i].numpy().astype("uint8"))
-            plt.title(class_names[labels[i]])
-            plt.axis("off")
-        plt.show()
-
-    for image_batch, labels_batch in train_ds:
-        print(image_batch.shape)
-        print(labels_batch.shape)
-        break
+    # plt.figure(figsize=(10, 10))
+    # for images, labels in train_ds.take(1):
+    #     for i in range(9):
+    #         ax = plt.subplot(3, 3, i + 1)
+    #         plt.imshow(images[i].numpy().astype("uint8"))
+    #         plt.title(class_names[labels[i]])
+    #         plt.axis("off")
+    #     plt.show()
+    #
+    # for image_batch, labels_batch in train_ds:
+    #     print(image_batch.shape)
+    #     print(labels_batch.shape)
+    #     break
 
     AUTOTUNE = tf.data.AUTOTUNE
 
@@ -83,57 +83,56 @@ if __name__ == '__main__':
     print(np.min(first_image), np.max(first_image))
 
     num_classes = len(class_names)
-
-    model = Sequential([
-        layers.Rescaling(1. / 255, input_shape=(img_height, img_width, 3)),
-        layers.Conv2D(16, 3, padding='same', activation='relu'),
-        layers.MaxPooling2D(),
-        layers.Conv2D(32, 3, padding='same', activation='relu'),
-        layers.MaxPooling2D(),
-        layers.Conv2D(64, 3, padding='same', activation='relu'),
-        layers.MaxPooling2D(),
-        layers.Flatten(),
-        layers.Dense(128, activation='relu'),
-        layers.Dense(num_classes)
-    ])
-    model.compile(optimizer='adam',
-                  loss=tf.keras.losses.SparseCategoricalCrossentropy(from_logits=True),
-                  metrics=['accuracy'])
-    model.summary()
-
-    epochs = 10
-    history = model.fit(
-        train_ds,
-        validation_data=val_ds,
-        epochs=epochs
-    )
-    acc = history.history['accuracy']
-    val_acc = history.history['val_accuracy']
-    loss = history.history['loss']
-    val_loss = history.history['val_loss']
-    epochs_range = range(epochs)
-    plt.figure(figsize=(8, 8))
-    plt.subplot(1, 2, 1)
-    plt.plot(epochs_range, acc, label='Training Accuracy')
-    plt.plot(epochs_range, val_acc, label='Validation Accuracy')
-    plt.legend(loc='lower right')
-    plt.title('Training and Validation Accuracy')
-
-    plt.subplot(1, 2, 2)
-    plt.plot(epochs_range, loss, label='Training Loss')
-    plt.plot(epochs_range, val_loss, label='Validation Loss')
-    plt.legend(loc='upper right')
-    plt.title('Training and Validation Loss')
-    plt.show()
+    #
+    # model = Sequential([
+    #     layers.Conv2D(16, 3, padding='same', activation='relu'),
+    #     layers.MaxPooling2D(),
+    #     layers.Conv2D(32, 3, padding='same', activation='relu'),
+    #     layers.MaxPooling2D(),
+    #     layers.Conv2D(64, 3, padding='same', activation='relu'),
+    #     layers.MaxPooling2D(),
+    #     layers.Flatten(),
+    #     layers.Dense(128, activation='relu'),
+    #     layers.Dense(num_classes)
+    # ])
+    # model.compile(optimizer='adam',
+    #               loss=tf.keras.losses.SparseCategoricalCrossentropy(from_logits=True),
+    #               metrics=['accuracy'])
+    # model.summary()
+    #
+    # epochs = 10
+    # history = model.fit(
+    #     train_ds,
+    #     validation_data=val_ds,
+    #     epochs=epochs
+    # )
+    # acc = history.history['accuracy']
+    # val_acc = history.history['val_accuracy']
+    # loss = history.history['loss']
+    # val_loss = history.history['val_loss']
+    # epochs_range = range(epochs)
+    # plt.figure(figsize=(8, 8))
+    # plt.subplot(1, 2, 1)
+    # plt.plot(epochs_range, acc, label='Training Accuracy')
+    # plt.plot(epochs_range, val_acc, label='Validation Accuracy')
+    # plt.legend(loc='lower right')
+    # plt.title('Training and Validation Accuracy')
+    #
+    # plt.subplot(1, 2, 2)
+    # plt.plot(epochs_range, loss, label='Training Loss')
+    # plt.plot(epochs_range, val_loss, label='Validation Loss')
+    # plt.legend(loc='upper right')
+    # plt.title('Training and Validation Loss')
+    # plt.show()
 
     data_augmentation = keras.Sequential(
         [
-            layers.experimental.preprocessing.RandomFlip("horizontal_and_vertical",
-                                                         input_shape=(img_height, img_width, 3)),
-            layers.experimental.preprocessing.RandomRotation(0.2),
-            layers.experimental.preprocessing.RandomZoom(0.2),
-            layers.experimental.preprocessing.RandomContrast(0.1),
-
+            layers.RandomFlip("horizontal",
+                              input_shape=(img_height,
+                                           img_width,
+                                           3)),
+            layers.RandomRotation(0.1),
+            layers.RandomZoom(0.1),
         ]
     )
 
@@ -147,15 +146,17 @@ if __name__ == '__main__':
     # Create a learning rate scheduler callback
     model = Sequential([
         data_augmentation,
-        layers.Conv2D(32, (3, 3), activation='relu', input_shape=(img_height, img_width, 3)),
-        layers.MaxPooling2D((2, 2)),
-        layers.Conv2D(64, (3, 3), activation='relu'),
-        layers.MaxPooling2D((2, 2)),
-        layers.Conv2D(128, (3, 3), activation='relu'),
-        layers.MaxPooling2D((2, 2)),
+        layers.Rescaling(1. / 255),
+        layers.Conv2D(16, 3, padding='same', activation='relu'),
+        layers.MaxPooling2D(),
+        layers.Conv2D(32, 3, padding='same', activation='relu'),
+        layers.MaxPooling2D(),
+        layers.Conv2D(64, 3, padding='same', activation='relu'),
+        layers.MaxPooling2D(),
+        layers.Dropout(0.2),
         layers.Flatten(),
-        layers.Dense(256, activation='relu'),
-        layers.Dense(num_classes, activation='softmax')
+        layers.Dense(128, activation='relu'),
+        layers.Dense(num_classes, name="outputs")
 
     ])
     model.compile(optimizer='adam',
@@ -168,13 +169,13 @@ if __name__ == '__main__':
         validation_data=val_ds,
         epochs=epochs,
     )
-    acc = history.history['accuracy']
-    val_acc = history.history['val_accuracy']
+    acc = history.history['accuracy'][2:]
+    val_acc = history.history['val_accuracy'][2:]
 
-    loss = history.history['loss']
-    val_loss = history.history['val_loss']
+    loss = history.history['loss'][2:]
+    val_loss = history.history['val_loss'][2:]
 
-    epochs_range = range(epochs)
+    epochs_range = range(2,epochs)
 
     plt.figure(figsize=(8, 8))
     plt.subplot(1, 2, 1)
@@ -192,7 +193,7 @@ if __name__ == '__main__':
 
     convert = tf.lite.TFLiteConverter.from_keras_model(model)
     convert_model = convert.convert()
-    with open('keras_model3.tflite', 'wb') as f:
+    with open('keras_model9.tflite', 'wb') as f:
         f.write(convert_model)
 
 
@@ -211,7 +212,7 @@ if __name__ == '__main__':
         img_width = 180
 
         # Get saved model
-        model_interpreter = tf.lite.Interpreter(model_path="keras_model3.tflite")
+        model_interpreter = tf.lite.Interpreter(model_path="keras_model9.tflite")
         # Optimizes inference
         model_interpreter.allocate_tensors()
 
