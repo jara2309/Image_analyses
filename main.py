@@ -11,53 +11,96 @@ import pathlib
 
 
 def initializing_data():
+    """ In this function all the data is been previded to use for
+    further analyzing.
+
+    :return: train_dataset - list - List with all the images of the
+    training dataset
+    :return: val_dataset - list - List with all the images of the
+    validation dataset
+    :return: classes_names - list - List with the names of the classes
+    :return: image_height - int - Int to set the heights of the images
+    :return: image_width - int - Int to set the width of the images
+    """
+    # Setting the batch size
     batch_size = 128
+    # Setting the image size
     image_height = 180
     image_width = 180
+    # Defining the location of the trainingset to use
     train_data_dir = "C:/Users/jaral/PycharmProjects/" \
                      "Image_analyses_ours/train"
     traindata_dir = pathlib.Path(train_data_dir)
-
+    # Gets the images from the given location to form the training set
     train_dataset = tf.keras.utils.image_dataset_from_directory(
         traindata_dir,
         seed=123,
         image_size=(image_height, image_width),
         batch_size=batch_size)
 
+    # Defining the location of the validationset to use
     validation_data_dir = "C:/Users/jaral/PycharmProjects/" \
                           "Image_analyses_ours/val"
     validatedata_dir = pathlib.Path(validation_data_dir)
+    # Gets the images from the given location to form the validation set
     val_dataset = tf.keras.utils.image_dataset_from_directory(
         validatedata_dir,
         seed=123,
         image_size=(image_height, image_width),
         batch_size=batch_size)
 
+    # Creating a variable to set the names of the different classes
     classes_names = train_dataset.class_names
 
-    print(classes_names)
-
+    # Returning the variables to use in other functions
     return train_dataset, val_dataset, \
         classes_names, image_height, image_width
 
 
 def pre_processing(training_dataset, validation_dataset, classes_names,
                    image_height, image_width):
-    autotune = tf.data.AUTOTUNE
+    """In this function the training and validationset will be
+    pre-processed by using a normalisation layer and augmentation on
+    the data.
 
+    :param training_dataset - list - List with all the images of the
+    training dataset
+    :param validation_dataset - list - List with all the images of the
+    validation dataset
+    :param classes_names - str - String with the names of the classes
+    :param image_height - int - Int to set the heights of the images
+    :param image_width - int - Int to set the width of the images
+
+    :return train_data - list - List with all the images of the training
+    dataset after pre-processing
+    :return val_data - list - List with all the images of the validation
+    dataset after pre-processing
+    :return classes_numbers - list - List with the names of the classes
+    :return augmentation_data - -
+    """
+    # Setting the decision about the level of parallelism to use
+    autotune = tf.data.AUTOTUNE
+    # Using the autotune on the training and validation datasets
     train_data = training_dataset.cache().shuffle(1000).prefetch(
         buffer_size=autotune)
     val_data = validation_dataset.cache().prefetch(buffer_size=autotune)
 
+    # Initalizing the normalisation layer
     normalization_layer = layers.Rescaling(1. / 255)
+    # Using the normalisation layer on the training dataset
     normalized_ds = train_data.map(
         lambda x, y: (normalization_layer(x), y))
+    #
     image_batch, labels_batch = next(iter(normalized_ds))
+    #
     first_image = image_batch[0]
+    #
     print(np.min(first_image), np.max(first_image))
 
+    # Turning the class names into class numbers by using the length
     classes_numbers = len(classes_names)
 
+    # Using augmentation by using 3 diverent layers
     augmentation_data = keras.Sequential(
         [
             layers.RandomFlip("horizontal",
@@ -69,16 +112,31 @@ def pre_processing(training_dataset, validation_dataset, classes_names,
         ]
     )
 
+    # Showing a plot with the first 9 images of the training dataset
     plt.figure(figsize=(10, 10))
     for images, _ in train_data.take(1):
         for i in range(9):
             plt.axis("off")
+        # Showing the image
         plt.show()
+
     return train_data, val_data, classes_numbers, augmentation_data
 
 
 def model_training(train_dataset, val_dataset, number_classes,
                    augmentation_data):
+    """ In this function the actual model will be trained by using the
+    training and validation dataset.
+
+    :param train_dataset - list - List with all the images of the
+    training dataset
+    :param val_dataset - list - List with all the images of the
+    validation dataset
+    :param number_classes - list - List with all the image classes by
+    using numbers for every class
+    :param augmentation_data -  -
+
+    """
     # Create a learning rate scheduler callback
     model = Sequential([
         augmentation_data,
@@ -95,23 +153,31 @@ def model_training(train_dataset, val_dataset, number_classes,
         layers.Dense(number_classes, name="outputs")
 
     ])
+
+    # Viewing the training and validation accuracy for each epoch
     model.compile(optimizer='adam',
                   loss=tf.keras.losses.SparseCategoricalCrossentropy(
                       from_logits=True),
                   metrics=['accuracy'])
+
+    # Viewing all the layers of the network of the model
     model.summary()
+
+    # Setting the number of epochs to use
     epochs = 15
+    # Training the model for the given number of epochs with the
+    # training and validation dataset
     history = model.fit(
         train_dataset,
         validation_data=val_dataset,
         epochs=epochs,
     )
+    # Creating plots with the training and validation loss and accuracy
     acc = history.history['accuracy'][2:]
     val_acc = history.history['val_accuracy'][2:]
-
     loss = history.history['loss'][2:]
     val_loss = history.history['val_loss'][2:]
-
+    # Setting the range for the x-axis
     epochs_range = range(2, epochs)
 
     plt.figure(figsize=(8, 8))
@@ -135,17 +201,18 @@ def model_training(train_dataset, val_dataset, number_classes,
 
 
 def auc_score():
+    """ In this function the AUC-score of the model will be calculated
+    by using the test dataset. The AUC-score will be calculated after
+    testing the test dataset on the created model.
     """
-    Calculates the roc curve based on the saved keras model.
-    """
-    # Path to test directory
+    # Defining the location of the testset to use
     test_path = "C:/Users/jaral/PycharmProjects/" \
                 "Image_analyses_ours/test"
     directory_test_list = os.listdir(test_path)
-    # Declare lists
+    # Declaring the lists
     test_dataset_y_values = []
     predictions = []
-    # Declare variables
+    # Declaring the variables
     image_height = 180
     image_width = 180
     y = 0
