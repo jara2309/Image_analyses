@@ -11,7 +11,7 @@ import pathlib
 
 
 def initializing_data():
-    """ In this function all the data is been previded to use for
+    """ In this function all the data has been provided to use for
     further analyzing.
 
     :return: train_dataset - list - List with all the images of the
@@ -28,8 +28,7 @@ def initializing_data():
     image_height = 180
     image_width = 180
     # Defining the location of the trainingset to use
-    train_data_dir = "C:/Users/jaral/PycharmProjects/" \
-                     "Image_analyses_ours/train"
+    train_data_dir = "train"
     traindata_dir = pathlib.Path(train_data_dir)
     # Gets the images from the given location to form the training set
     train_dataset = tf.keras.utils.image_dataset_from_directory(
@@ -39,8 +38,7 @@ def initializing_data():
         batch_size=batch_size)
 
     # Defining the location of the validationset to use
-    validation_data_dir = "C:/Users/jaral/PycharmProjects/" \
-                          "Image_analyses_ours/val"
+    validation_data_dir = "val"
     validatedata_dir = pathlib.Path(validation_data_dir)
     # Gets the images from the given location to form the validation set
     val_dataset = tf.keras.utils.image_dataset_from_directory(
@@ -54,7 +52,7 @@ def initializing_data():
 
     # Returning the variables to use in other functions
     return train_dataset, val_dataset, \
-        classes_names, image_height, image_width
+           classes_names, image_height, image_width
 
 
 def pre_processing(training_dataset, validation_dataset, classes_names,
@@ -90,17 +88,15 @@ def pre_processing(training_dataset, validation_dataset, classes_names,
     # Using the normalisation layer on the training dataset
     normalized_ds = train_data.map(
         lambda x, y: (normalization_layer(x), y))
-    #
+    # Adds normalisation for every picture
     image_batch, labels_batch = next(iter(normalized_ds))
-    #
     first_image = image_batch[0]
-    #
     print(np.min(first_image), np.max(first_image))
 
     # Turning the class names into class numbers by using the length
     classes_numbers = len(classes_names)
 
-    # Using augmentation by using 3 diverent layers
+    # Using augmentation by using 3 different layers
     augmentation_data = keras.Sequential(
         [
             layers.RandomFlip("horizontal",
@@ -206,8 +202,7 @@ def auc_score():
     testing the test dataset on the created model.
     """
     # Defining the location of the testset to use
-    test_path = "C:/Users/jaral/PycharmProjects/" \
-                "Image_analyses_ours/test"
+    test_path = "test"
     directory_test_list = os.listdir(test_path)
     # Declaring the lists
     test_dataset_y_values = []
@@ -275,7 +270,7 @@ def auc_score():
 
 if __name__ == '__main__':
     training_data, validation_data, \
-        class_names, img_height, img_width = initializing_data()
+    class_names, img_height, img_width = initializing_data()
     train_ds, val_ds, num_classes, data_augmentation = pre_processing(
         training_data, validation_data, class_names, img_height,
         img_width)
